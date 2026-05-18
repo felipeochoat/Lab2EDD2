@@ -1,0 +1,61 @@
+{
+  "system": {
+    "intro": ["Bienvenido a NetGuardian. Los mensajes de acoso se propagan por la red.", "Investiga a los usuarios. Usa BFS o DFS para rastrear el origen."],
+    "bfs_start": ["BFS activo: expansión por niveles.", "Rastreando la propagación del acoso nodo por nodo..."],
+    "dfs_start": ["DFS activo: siguiendo cadenas profundas.", "Descendiendo a las capas oscuras de la red..."],
+    "dijkstra_start": ["Dijkstra activado.", "Calculando la ruta de menor riesgo hasta la víctima..."],
+    "kruskal_start": ["Kruskal activado.", "Reconstruyendo la red con el menor costo social posible..."],
+    "ff_start": ["Ford-Fulkerson activado.", "Calculando el flujo máximo de toxicidad en la red..."]
+  },
+  "npcs": {
+    "victim": [
+      "Recibo mensajes crueles todos los días...",
+      "No sé quién está detrás de todo esto.",
+      "Gracias por intentar ayudar.",
+      "El acoso se propagó muy rápido en la red.",
+      "Me siento sola en esto..."
+    ],
+    "bully": [
+      "No sé de qué hablas.",
+      "Todos lo hacen, yo solo sigo la corriente.",
+      "Déjame en paz, investigador.",
+      "No tienes pruebas de nada."
+    ],
+    "follower": [
+      "Solo compartí lo que vi en mi feed...",
+      "No sabía que hacía daño.",
+      "Creo que empezó en el nodo central.",
+      "Fui manipulado. Lo siento."
+    ],
+    "ally": [
+      "Estoy aquí para ayudar a quien lo necesite.",
+      "He visto el acoso propagarse. Hay un patrón.",
+      "Juntos podemos reconstruir la red.",
+      "La víctima necesita apoyo urgente."
+    ],
+    "observer": [
+      "Vi todo pero no dije nada. Lo lamento.",
+      "El origen está más profundo en la red.",
+      "Hay conexiones que no son obvias.",
+      "Debería haber hablado antes."
+    ],
+    "bot": [
+      "ERROR: respuesta_no_definida",
+      "PROPAGANDO: contenido_toxico_v2...",
+      "No soy lo que parezco.",
+      "CICLO_DETECTADO: reiniciando..."
+    ],
+    "origin": [
+      "... (silencio)",
+      "¿Cómo llegaste hasta aquí?",
+      "Fui yo. Lo siento.",
+      "No quería que llegara tan lejos."
+    ],
+    "neutral": [
+      "¿Qué está pasando en la red?",
+      "He notado cosas extrañas últimamente.",
+      "Espero que puedas resolverlo.",
+      "No me involucro en esas cosas."
+    ]
+  }
+}

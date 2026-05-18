@@ -1,0 +1,47 @@
+[
+  {
+    "id": 0,
+    "name": "Rastros del Acoso",
+    "algo": "BFS/DFS",
+    "story": "Mensajes de odio se propagan. Investiga con BFS o DFS para encontrar el origen.",
+    "goal": "Identificar el nodo origen del acoso.",
+    "hint": "Presiona [1] para BFS o [2] para DFS.",
+    "reward": 50
+  },
+  {
+    "id": 1,
+    "name": "Ruta Segura",
+    "algo": "Dijkstra",
+    "story": "Lleva apoyo emocional a la víctima por el camino de menor riesgo.",
+    "goal": "Encontrar el camino más seguro hasta la víctima.",
+    "hint": "Presiona [3] para Dijkstra.",
+    "reward": 60
+  },
+  {
+    "id": 2,
+    "name": "Reconstruir la Red",
+    "algo": "Kruskal",
+    "story": "El acoso destruyó la confianza. Reconstruye las conexiones con mínimo costo.",
+    "goal": "Crear el árbol de expansión mínima.",
+    "hint": "Presiona [4] para Kruskal.",
+    "reward": 60
+  },
+  {
+    "id": 3,
+    "name": "Control del Impacto",
+    "algo": "Ford-Fulkerson",
+    "story": "Calcula el flujo máximo de toxicidad para identificar qué cortar.",
+    "goal": "Calcular el flujo máximo y controlar la propagación.",
+    "hint": "Presiona [5] para Ford-Fulkerson.",
+    "reward": 70
+  },
+  {
+    "id": 4,
+    "name": "Red Segura — Misión Final",
+    "algo": "BFS/DFS/Dijkstra/Kruskal/Ford-Fulkerson",
+    "story": "La red colapsa. Aplica todos los algoritmos para restaurar el ecosistema social.",
+    "goal": "Completar los 4 algoritmos y restaurar la red.",
+    "hint": "Ejecuta [1][2][3][4][5] en orden.",
+    "reward": 150
+  }
+]
