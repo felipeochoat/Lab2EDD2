@@ -178,6 +178,4 @@ Usa **"CONTINUAR"** en el menú para retomar desde donde quedaste.
 
 **Universidad del Norte**  
 Departamento de Ingeniería de Sistemas y Computación  
-Estructura de Datos II — Laboratorio 2  
-Fecha límite: 26 de Mayo 2026  
-Grupos máximo de 4 estudiantes
+Estructura de Datos II — Laboratorio 2
