@@ -15,7 +15,7 @@ representan aristas. Los algoritmos de grafos se manifiestan como mecánicas nat
 
 ## 📦 Requisitos
 
-- Python **3.9+**
+- Python **3.11.9**
 - pygame **2.x**
 
 ```bash
