@@ -7,6 +7,7 @@ class GameState:
     PAUSED  = "paused"
     VICTORY = "victory"
     CINEMATIC = "cinematic"
+    SETTINGS = "settings"
 
 
 class StateManager:
@@ -30,3 +31,6 @@ class StateManager:
 
     def is_victory(self):
         return self.state == GameState.VICTORY
+
+    def is_settings(self):
+        return self.state == GameState.SETTINGS

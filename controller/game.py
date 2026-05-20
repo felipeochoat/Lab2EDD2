@@ -24,7 +24,7 @@ from model.algorithms  import bfs, dfs, dijkstra, kruskal, ford_fulkerson
 from view.graph_view   import GraphView
 from view.tilemap      import WorldRenderer
 from view.ui           import UIPanel
-from view.menus        import MainMenu, VictoryScreen
+from view.menus        import MainMenu, VictoryScreen, SettingsScreen
 from view.effects      import GlitchEffect, ScanlineEffect
 
 from controller.state_manager    import StateManager, GameState
@@ -105,6 +105,7 @@ class Game:
         self.world_rend = WorldRenderer(self.screen)
         self.ui         = UIPanel(self.screen)
         self.main_menu  = MainMenu(self.screen)
+        self.settings   = SettingsScreen(self.screen)
         self.victory    = None
 
         self.glitch   = GlitchEffect(self.screen)
@@ -159,7 +160,14 @@ class Game:
                 r = self.main_menu.handle_event(event)
                 if r == "NUEVA PARTIDA": self._new_game()
                 elif r == "CONTINUAR":   self._load_game()
+                elif r == "CONFIGURACION": self.state_mgr.transition(GameState.SETTINGS)
                 elif r == "SALIR":       pygame.quit(); sys.exit()
+                continue
+
+            if self.state_mgr.is_settings():
+                r = self.settings.handle_event(event)
+                if r == "menu":
+                    self.state_mgr.transition(GameState.MENU)
                 continue
 
             if self.state_mgr.is_victory():
@@ -204,6 +212,8 @@ class Game:
     def _update(self, dt):
         if self.state_mgr.is_menu():
             self.main_menu.update(); return
+        if self.state_mgr.is_settings():
+            self.settings.update(); return
         if self.state_mgr.is_victory():
             self.victory.update(); return
 
@@ -524,6 +534,8 @@ class Game:
 
         if self.state_mgr.is_menu():
             self.main_menu.draw(); return
+        if self.state_mgr.is_settings():
+            self.settings.draw(); return
         if self.state_mgr.is_victory():
             self.victory.draw(); return
 
