@@ -9,53 +9,68 @@
   },
   "npcs": {
     "victim": [
-      "Recibo mensajes crueles todos los días...",
-      "No sé quién está detrás de todo esto.",
-      "Gracias por intentar ayudar.",
-      "El acoso se propagó muy rápido en la red.",
-      "Me siento sola en esto..."
+      "Un usuario llamado bot719 me ha enviado 27 mensajes en las últimas dos semanas. Todos dicen lo mismo.",
+      "Empezó con un comentario en mi publicación. Ahora son cinco cuentas distintas coordinadas contra mí.",
+      "Bloqueé a @xX_darknode_Xx, pero creó una cuenta nueva al día siguiente. ¿Cómo detengo esto?",
+      "Capturé las pantallas. Son 14 páginas de mensajes. ¿Eso es suficiente evidencia para ti?",
+      "Lo peor no es lo que me dicen. Es que nadie en la red dijo nada. Solo miraron.",
+      "Mi nivel de señal cayó a rojo hace tres días. Desde que empezaron los mensajes, nadie me contacta ya."
     ],
     "bully": [
-      "No sé de qué hablas.",
-      "Todos lo hacen, yo solo sigo la corriente.",
-      "Déjame en paz, investigador.",
-      "No tienes pruebas de nada."
+      "Ese mensaje lo envié hace meses. Ya ni lo recuerdo. No es para tanto.",
+      "Éramos cuatro en el grupo. Yo solo reenvié lo que los demás escribieron primero.",
+      "No tienes pruebas de que fui yo. Cualquiera pudo usar ese nodo.",
+      "¿Acoso? Solo era un juego. La víctima debería aprender a ignorarlo.",
+      "Mira, si me delatas, tú también quedas fuera de la red. Piénsalo bien.",
+      "El grupo se llamaba 'Operación Silencio'. Yo era el de menor rango. Hay alguien más arriba."
     ],
     "follower": [
-      "Solo compartí lo que vi en mi feed...",
-      "No sabía que hacía daño.",
-      "Creo que empezó en el nodo central.",
-      "Fui manipulado. Lo siento."
+      "Vi la publicación en mi feed y le di compartir sin leer bien. Cuando me di cuenta, ya tenía 80 reenvíos.",
+      "Me dijeron que era una broma entre amigos. No sabía que la víctima era real y estaba leyendo todo.",
+      "Compartí el meme tres veces en 48 horas. Después vi quién era el objetivo y lo borré, pero ya era tarde.",
+      "El nodo central me etiquetó y sentí presión social. Si no participaba, me expulsaban del grupo.",
+      "Fui manipulado. Me mostraron solo parte de la conversación. El contexto era completamente diferente.",
+      "Borré mis reenvíos pero el daño ya estaba hecho. ¿Eso me hace culpable igual?"
     ],
     "ally": [
-      "Estoy aquí para ayudar a quien lo necesite.",
-      "He visto el acoso propagarse. Hay un patrón.",
-      "Juntos podemos reconstruir la red.",
-      "La víctima necesita apoyo urgente."
+      "Detecté un patrón: los mensajes de acoso llegan siempre entre las 10 p.m. y la 1 a.m. Hay coordinación.",
+      "Tres nodos distintos usaron exactamente la misma frase. Eso no es coincidencia, es una campaña organizada.",
+      "La víctima necesita que alguien valide sus capturas. Sin eso, el sistema descarta la denuncia.",
+      "He mapeado 11 conexiones entre el bully y los followers. El grafo no miente: hay una jerarquía.",
+      "Si usas BFS desde la víctima, llegarás al nodo origen en cuatro saltos. Lo calculé anoche.",
+      "Puedo ser testigo digital. Guardo logs de todo. Pero necesito que tú hagas el primer movimiento."
     ],
     "observer": [
-      "Vi todo pero no dije nada. Lo lamento.",
-      "El origen está más profundo en la red.",
-      "Hay conexiones que no son obvias.",
-      "Debería haber hablado antes."
+      "Vi el primer mensaje hace tres semanas. Pensé que se resolvería solo. Me equivoqué.",
+      "Estaba en el grupo cuando empezó todo. Leí cada mensaje y no escribí nada. Eso me pesa.",
+      "Sé quién inició esto, pero tengo miedo de que me excluyan si hablo. ¿Eso me hace cómplice?",
+      "El hilo original tiene 340 respuestas. Guardé los primeros 20 antes de que los borraran.",
+      "Vi cómo la víctima intentó defenderse dos veces. La silenciaron en segundos.",
+      "No actué. Pero puedo darte acceso a los logs que conservo. Quizás eso sirva de algo ahora."
     ],
     "bot": [
-      "ERROR: respuesta_no_definida",
-      "PROPAGANDO: contenido_toxico_v2...",
-      "No soy lo que parezco.",
-      "CICLO_DETECTADO: reiniciando..."
+      "IDENTIFICADO: nodo_investigador. ALERTA enviada a: 3 destinatarios.",
+      "TAREA EN CURSO: reenviar_mensaje[id=4471] a 12 nodos activos. Progreso: 67%.",
+      "ERROR: memoria_emocional no encontrada. Ejecutando respuesta_simulada...",
+      "CICLO DETECTADO: el investigador ha trazado mi ruta. Iniciando protocolo de evasión.",
+      "Soy el nodo 6 de 9. Los otros ocho siguen activos. No me desactives solo a mí.",
+      "No tengo motivaciones propias. Alguien me programó. Busca al operador, no a la máquina."
     ],
     "origin": [
-      "... (silencio)",
-      "¿Cómo llegaste hasta aquí?",
-      "Fui yo. Lo siento.",
-      "No quería que llegara tan lejos."
+      "Pensé que nadie llegaría hasta aquí. ¿Cómo rastreaste el grafo completo?",
+      "Empezó como una discusión. Un mensaje. No esperaba que se propagara a 40 nodos en tres días.",
+      "Fui yo. Lo sé. He visto cómo cada reenvío llegó más lejos de lo que quise.",
+      "¿Quieres saber por qué? Porque nadie me escuchó a mí primero. Eso no lo justifica. Lo sé.",
+      "Sí, creé los bots. Sí, coordine el grupo. Pero cuando vi el daño real, no supe cómo detenerlo.",
+      "Si me denuncias, entiendo. Solo quiero que sepas que... ya no soy la misma persona que lo hizo."
     ],
     "neutral": [
-      "¿Qué está pasando en la red?",
-      "He notado cosas extrañas últimamente.",
-      "Espero que puedas resolverlo.",
-      "No me involucro en esas cosas."
+      "He notado que tres nodos de mi red desaparecieron esta semana sin explicación.",
+      "Alguien me pidió que me uniera a un grupo privado. Lo rechacé. Ahora me siento excluido de todo.",
+      "Escuché que hay una campaña organizada en algún nodo profundo. No sé los detalles.",
+      "Mi algoritmo de feed me muestra contenido cada vez más agresivo. ¿Eso es normal?",
+      "Una cuenta nueva me envió una solicitud de conexión. El perfil parece falso. ¿La acepto?",
+      "No me involucro en conflictos de red, pero últimamente es difícil ignorar lo que está pasando."
     ]
   }
 }
