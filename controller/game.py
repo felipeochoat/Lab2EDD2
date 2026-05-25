@@ -27,6 +27,7 @@ from view.graph_view   import GraphView
 from view.tilemap      import WorldRenderer
 from view.ui           import UIPanel
 from view.menus        import MainMenu, VictoryScreen, SettingsScreen
+from view.mission_intro import MissionIntroScreen
 from view.effects      import GlitchEffect, ScanlineEffect
 from view.minigame     import MinigameController
 
@@ -122,6 +123,9 @@ class Game:
         self.scanline = ScanlineEffect(self.screen)
         self.dlg      = DialogueManager(self.ui)
 
+        # Mission intro cinematic screen
+        self.mission_intro: MissionIntroScreen | None = None
+
         # Algorithm state
         self.algo_gen     = None
         self.algo_name    = ""
@@ -200,6 +204,13 @@ class Game:
                     self._end_minigame()
                 continue
 
+            # ── Intro cinemática de misión ────────────────────────────────
+            if self.mission_intro is not None:
+                r = self.mission_intro.handle_event(event)
+                if r == "continue" or (self.mission_intro and self.mission_intro.done):
+                    self._end_mission_intro()
+                continue
+
             if self.state_mgr.is_menu():
                 r = self.main_menu.handle_event(event)
                 if r == "NUEVA PARTIDA":
@@ -269,6 +280,13 @@ class Game:
 
     # ── UPDATE ────────────────────────────────────────────────────────────
     def _update(self, dt):
+        # Intro cinemática activa
+        if self.mission_intro is not None:
+            self.mission_intro.update()
+            if self.mission_intro.done:
+                self._end_mission_intro()
+            return
+
         # Minijuego activo: procesar (ya se procesa en _handle_events también)
         if self.state_mgr.is_minigame():
             mouse = pygame.mouse.get_pos()
@@ -483,6 +501,8 @@ class Game:
             # Guardar progreso al avanzar de misión
             self.save_mgr.save(self.player, self.mission_mgr)
             self._show_step("start")
+            # Mostrar intro cinemática de la nueva misión
+            self._show_mission_intro()
         else:
             self._trigger_victory()
 
@@ -643,6 +663,18 @@ class Game:
             pass
 
     # ── NEW / LOAD ─────────────────────────────────────────────────────────
+    def _show_mission_intro(self):
+        """Lanza la pantalla cinemática de introducción para la misión actual."""
+        mid = self.mission_mgr.current
+        self.mission_intro = MissionIntroScreen(self.screen, mission_id=mid)
+
+    def _end_mission_intro(self):
+        """Descarta la intro y entra al gameplay."""
+        self.mission_intro = None
+        self._show_step("start")
+        self.snd.stop_all_music()
+        self.snd.start_ambient()
+
     def _new_game(self):
         self.graph   = SocialGraph(n=12, seed=42)
         self.player  = Player(x=200, y=400)
@@ -665,6 +697,8 @@ class Game:
         self.state_mgr.transition(GameState.PLAYING)
         self.snd.stop_all_music()
         self.snd.start_ambient()
+        # Mostrar intro cinemática de misión 0
+        self._show_mission_intro()
 
     def _load_game(self):
         data = self.save_mgr.load()
@@ -690,10 +724,18 @@ class Game:
         self.state_mgr.transition(GameState.PLAYING)
         self.snd.stop_all_music()
         self.snd.start_ambient()
+        # Mostrar intro cinemática de la misión cargada
+        self._show_mission_intro()
 
     # ── DRAW ──────────────────────────────────────────────────────────────
     def _draw(self):
         self.screen.fill(C_BLACK)
+
+        # ── Intro cinemática de misión ─────────────────────────────────────
+        if self.mission_intro is not None:
+            self.mission_intro.draw()
+            pygame.display.flip()
+            return
 
         # ── Minijuego ──────────────────────────────────────────────────────
         if self.state_mgr.is_minigame():
