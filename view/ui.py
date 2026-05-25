@@ -51,11 +51,7 @@ class XPPopup:
 class UIPanel:
     def __init__(self, screen):
         self.screen  = screen
-        self.font_xs = pygame.font.SysFont("consolas", 9)
-        self.font_sm = pygame.font.SysFont("consolas", 11)
-        self.font_md = pygame.font.SysFont("consolas", 13, bold=True)
-        self.font_lg = pygame.font.SysFont("consolas", 15, bold=True)
-        self.font_xl = pygame.font.SysFont("consolas", 20, bold=True)
+        self._rebuild_fonts()
 
         # Dialogue — dlg_name exposed so controller can check it
         self.dlg_name   = "SISTEMA"
@@ -76,11 +72,32 @@ class UIPanel:
         # XP popups
         self._popups: list[XPPopup] = []
 
+    def _rebuild_fonts(self):
+        """Reconstruye las fuentes según AJUSTES['tamaño']."""
+        try:
+            from view.menus import AJUSTES
+            tam = AJUSTES.get("tamaño", "NORMAL")
+        except Exception:
+            tam = "NORMAL"
+        if tam == "GRANDE":
+            scale = 1.35
+        elif tam == "PEQUEÑO":
+            scale = 0.80
+        else:
+            scale = 1.0
+        def sz(base): return max(7, int(base * scale))
+        self.font_xs = pygame.font.SysFont("consolas", sz(9))
+        self.font_sm = pygame.font.SysFont("consolas", sz(11))
+        self.font_md = pygame.font.SysFont("consolas", sz(13), bold=True)
+        self.font_lg = pygame.font.SysFont("consolas", sz(15), bold=True)
+        self.font_xl = pygame.font.SysFont("consolas", sz(20), bold=True)
+
     # ── Public API ─────────────────────────────────────────────────────────────
     def set_dialogue(self, name, text, choices=None):
         self.dlg_name    = name
         self.dlg_text    = text
         self.dlg_choices = choices or []
+        self._rebuild_fonts()   # actualiza fuentes si cambiaron ajustes
 
     def show_xp_popup(self, text, screen_x, screen_y):
         self._popups.append(XPPopup(text, screen_x, screen_y))
@@ -195,31 +212,38 @@ class UIPanel:
         for i, (bid, label, col, kshort) in enumerate(BTNS):
             by    = y + 18 + i * 27
             state = self.btn_states.get(bid, 'normal')
-            is_rec = bid in recommended and state == 'normal'
+            is_rec   = bid in recommended
+            is_locked = not is_rec and state not in ('done', 'active')
 
-            # Background & border
-            if state == 'done':
+            if is_locked:
+                # Grisado / bloqueado
+                bg, bc = (8, 10, 18), (18, 22, 36)
+                lc = (28, 36, 55)
+            elif state == 'done':
                 bg, bc = (12, 36, 14), C_GREEN
+                lc = C_GREEN
             elif state == 'active':
                 bg, bc = (40, 24, 4), C_YELLOW
-            elif is_rec:
-                # Pulsing recommended highlight
+                lc = C_YELLOW
+            elif is_rec and state == 'normal':
                 p = 0.5 + 0.5 * math.sin(self.t * 0.08)
                 bg = (int(8 * p), int(18 * p), int(42 * p))
                 bc = tuple(int(c * (0.5 + 0.5 * p)) for c in col)
+                lc = col
             else:
                 bg, bc = (10, 18, 36), (22, 42, 78)
+                lc = col
 
             pygame.draw.rect(s, bg, (x, by, w - 4, 24))
             pygame.draw.rect(s, bc, (x, by, w - 4, 24), 1)
 
-            # Label
-            lc = col if state == 'normal' else (bc if state != 'done' else C_GREEN)
             ls = self.font_sm.render(label, True, lc)
             s.blit(ls, (x + 6, by + 5))
 
-            # State badge
-            if state == 'done':
+            if is_locked:
+                ds = self.font_xs.render("🔒 BLOQ", True, (30, 40, 65))
+                s.blit(ds, (x + w - ds.get_width() - 6, by + 7))
+            elif state == 'done':
                 ds = self.font_xs.render("✓ LISTO", True, C_GREEN)
                 s.blit(ds, (x + w - ds.get_width() - 6, by + 7))
             elif state == 'active':
@@ -276,8 +300,11 @@ class UIPanel:
         x0 = 544
         y0 = UI_PANEL_Y + 18
         bids = ["bfs", "dfs", "dijkstra", "kruskal", "ff"]
+        recommended = MISSION_RECOMMENDED.get(self.mission, bids)
         for i, bid in enumerate(bids):
             by = y0 + i * 27
             if pygame.Rect(x0, by, 178, 24).collidepoint(mouse_pos):
-                return bid
+                if bid in recommended:
+                    return bid
+                return None   # bloqueado visualmente
         return None

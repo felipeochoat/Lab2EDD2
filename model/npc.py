@@ -1,3 +1,4 @@
+# model/npc.py
 import random
 import math
 
@@ -5,7 +6,8 @@ import math
 class NPC:
     """
     NPC = a node in the social graph made physical in the game world.
-    Each NPC patrols the level and can be talked to by the player.
+    Ahora rastrea el historial de diálogo para detectar cuándo se agota
+    el banco de comentarios (→ desencadena minijuego).
     """
 
     DIALOGUE = {
@@ -75,6 +77,14 @@ class NPC:
         ],
     }
 
+    # Diálogo especial al agotarse el banco (pide ayuda para el minijuego)
+    MINIGAME_REQUEST_LINES = [
+        "Espera... necesito tu ayuda con algo importante. He visto algo que no puedo ignorar.",
+        "Antes de que sigas, tengo un caso que mostrarте. Es urgente. ¿Puedes ayudarme?",
+        "He llegado hasta el límite de lo que puedo contarte. Pero... hay un caso que necesita tu análisis.",
+        "Oye, investigador. Tengo información sobre un caso real. ¿Puedes resolverlo?",
+    ]
+
     def __init__(self, node_id, name, world_x, node_type="neutral"):
         self.node_id   = node_id
         self.name      = name
@@ -87,8 +97,17 @@ class NPC:
         self.facing    = 1 if self.vx > 0 else -1
 
         self.talked_to  = False
-        self.revealed   = False   # True after visited by algorithm
+        self.revealed   = False
         self.emotion    = "neutral"
+
+        # Minijuego tracking
+        self.is_minigame_npc   = False   # marcado externamente
+        self.minigame_done     = False   # ya se jugó el minijuego con este NPC
+        self.minigame_pending  = False   # lista para lanzar el minijuego
+        self._dialogue_pool    = list(self.DIALOGUE.get(node_type, self.DIALOGUE["neutral"]))
+        random.shuffle(self._dialogue_pool)
+        self._dialogue_index   = 0       # siguiente línea sin usar
+        self._interaction_count = 0
 
         # Visual
         self.anim_frame = 0
@@ -109,8 +128,34 @@ class NPC:
         self.bob += 0.05
 
     def get_dialogue(self):
-        lines = self.DIALOGUE.get(self.node_type, self.DIALOGUE["neutral"])
-        return random.choice(lines)
+        """
+        Devuelve la siguiente línea de diálogo (sin repetir hasta agotar).
+        Si el banco se agota y este NPC es un minigame NPC, activa minigame_pending.
+        """
+        self._interaction_count += 1
+        pool = self._dialogue_pool
+
+        if self._dialogue_index < len(pool):
+            line = pool[self._dialogue_index]
+            self._dialogue_index += 1
+            # Justo antes de agotar: si es minijuego NPC, marcar pending
+            if (self.is_minigame_npc and not self.minigame_done
+                    and self._dialogue_index >= len(pool)):
+                self.minigame_pending = True
+            return line
+        else:
+            # Banco agotado
+            if self.is_minigame_npc and not self.minigame_done:
+                self.minigame_pending = True
+                return random.choice(self.MINIGAME_REQUEST_LINES)
+            # Banco agotado y no minijuego: reciclar aleatoriamente
+            self._dialogue_index = 0
+            random.shuffle(self._dialogue_pool)
+            return pool[0] if pool else "..."
+
+    @property
+    def dialogue_exhausted(self):
+        return self._dialogue_index >= len(self._dialogue_pool)
 
     def distance_to_player(self, player_x, player_y):
         return math.hypot(self.x - player_x, 0)

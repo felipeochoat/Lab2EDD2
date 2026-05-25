@@ -2,12 +2,13 @@
 
 
 class GameState:
-    MENU    = "menu"
-    PLAYING = "playing"
-    PAUSED  = "paused"
-    VICTORY = "victory"
+    MENU      = "menu"
+    PLAYING   = "playing"
+    PAUSED    = "paused"
+    VICTORY   = "victory"
     CINEMATIC = "cinematic"
-    SETTINGS = "settings"
+    SETTINGS  = "settings"
+    MINIGAME  = "minigame"    # ← nuevo estado para el minijuego del Lab1
 
 
 class StateManager:
@@ -34,3 +35,6 @@ class StateManager:
 
     def is_settings(self):
         return self.state == GameState.SETTINGS
+
+    def is_minigame(self):
+        return self.state == GameState.MINIGAME

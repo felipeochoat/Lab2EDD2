@@ -31,10 +31,13 @@ class DialogueManager:
         self.ui.set_dialogue(name, text, choices)
 
     def npc_say(self, npc):
-        """Show an NPC's dialogue line."""
+        """Show an NPC's dialogue line (uses get_dialogue internally)."""
         line = npc.get_dialogue()
-        name = npc.name
-        self.ui.set_dialogue(name, line)
+        self.ui.set_dialogue(npc.name, line)
+
+    def npc_say_line(self, npc, line):
+        """Show a specific pre-fetched line for an NPC."""
+        self.ui.set_dialogue(npc.name, line)
 
     def algo_step(self, event_type, node=None, edge=None, value=None):
         """Called each algorithm step to narrate what's happening."""

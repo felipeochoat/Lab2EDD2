@@ -110,6 +110,12 @@ class SettingsScreen:
     def _set_vol(self, mx):
         ratio = (mx - self.barra_x) / self.barra_w
         AJUSTES["volumen"] = max(0.0, min(1.0, ratio))
+        # Propagar volumen al SoundManager centralizado
+        try:
+            from controller.sound_manager import get_sound_manager
+            get_sound_manager().set_volume(AJUSTES["volumen"])
+        except Exception:
+            pass
         try:
             pygame.mixer.music.set_volume(AJUSTES["volumen"])
         except Exception:
@@ -134,11 +140,26 @@ class SettingsScreen:
                 if b["rect"].collidepoint(event.pos):
                     AJUSTES["tamaño"] = self.TAMAÑOS[i]
                     self._rebuild_fonts()
+                    try:
+                        from controller.sound_manager import get_sound_manager
+                        get_sound_manager().play_config_change()
+                    except Exception:
+                        pass
 
             if self.btn_contraste["rect"].collidepoint(event.pos):
                 AJUSTES["contraste"] = not AJUSTES["contraste"]
+                try:
+                    from controller.sound_manager import get_sound_manager
+                    get_sound_manager().play_config_change()
+                except Exception:
+                    pass
 
             if self.btn_volver["rect"].collidepoint(event.pos):
+                try:
+                    from controller.sound_manager import get_sound_manager
+                    get_sound_manager().play_back()
+                except Exception:
+                    pass
                 return "menu"
 
         if event.type == pygame.MOUSEBUTTONUP and event.button == 1:
@@ -148,6 +169,11 @@ class SettingsScreen:
             self._set_vol(event.pos[0])
 
         if event.type == pygame.KEYDOWN and event.key == pygame.K_ESCAPE:
+            try:
+                from controller.sound_manager import get_sound_manager
+                get_sound_manager().play_back()
+            except Exception:
+                pass
             return "menu"
 
         return None
@@ -265,17 +291,25 @@ class MainMenu:
         self.font_lg  = pygame.font.SysFont("consolas", 22, bold=True)
         self.font_md  = pygame.font.SysFont("consolas", 14)
         self.font_sm  = pygame.font.SysFont("consolas", 11)
+        self._has_save = False
+        self.refresh_save_state()
         # Floating nodes for bg
         self.bg_nodes = [
-            {"x": random.uniform(0, SCREEN_W),
-             "y": random.uniform(0, SCREEN_H),
-             "vx": random.uniform(-0.3, 0.3),
-             "vy": random.uniform(-0.3, 0.3),
+            {"x": random.uniform(0, SCREEN_W), "y": random.uniform(0, SCREEN_H),
+             "vx": random.uniform(-0.3, 0.3), "vy": random.uniform(-0.3, 0.3),
              "r":  random.randint(4, 12),
              "col": random.choice([C_BLUE, C_GREEN, C_PURPLE, C_RED]),
              "phase": random.uniform(0, math.pi*2)}
             for _ in range(20)
         ]
+
+    def refresh_save_state(self):
+        try:
+            import os
+            from model.constants import DATA_DIR
+            self._has_save = os.path.exists(os.path.join(DATA_DIR, "save.json"))
+        except Exception:
+            self._has_save = False
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -284,13 +318,30 @@ class MainMenu:
             elif event.key in (pygame.K_DOWN, pygame.K_s):
                 self.selected = (self.selected + 1) % len(self.OPTIONS)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
-                return self.OPTIONS[self.selected]
+                opt = self.OPTIONS[self.selected]
+                # Bloquear CONTINUAR sin save
+                if opt == "CONTINUAR" and not self._has_save:
+                    return None
+                try:
+                    from controller.sound_manager import get_sound_manager
+                    get_sound_manager().play_click()
+                except Exception:
+                    pass
+                return opt
         if event.type == pygame.MOUSEBUTTONDOWN:
             for i in range(len(self.OPTIONS)):
                 oy = SCREEN_H // 2 + i * 48 - 40
                 rect = pygame.Rect(SCREEN_W//2 - 150, oy - 4, 300, 36)
                 if rect.collidepoint(event.pos):
-                    return self.OPTIONS[i]
+                    opt = self.OPTIONS[i]
+                    if opt == "CONTINUAR" and not self._has_save:
+                        return None
+                    try:
+                        from controller.sound_manager import get_sound_manager
+                        get_sound_manager().play_click()
+                    except Exception:
+                        pass
+                    return opt
         if event.type == pygame.MOUSEMOTION:
             for i in range(len(self.OPTIONS)):
                 oy = SCREEN_H // 2 + i * 48 - 40
@@ -373,12 +424,18 @@ class MainMenu:
         for i, opt in enumerate(self.OPTIONS):
             oy  = SCREEN_H // 2 + i * 48 - 40
             sel = (i == self.selected)
-            bg  = (8, 20, 40) if sel else (4, 10, 20)
-            bc  = C_BLUE if sel else (20, 40, 70)
+            disabled = (opt == "CONTINUAR" and not self._has_save)
+            if disabled:
+                bg = (4, 8, 16); bc = (18, 28, 46)
+                col = (35, 50, 70)
+            else:
+                bg  = (8, 20, 40) if sel else (4, 10, 20)
+                bc  = C_BLUE if sel else (20, 40, 70)
+                col = C_YELLOW if sel else (60, 100, 160)
             pygame.draw.rect(s, bg, (SCREEN_W//2 - 150, oy - 4, 300, 36))
             pygame.draw.rect(s, bc, (SCREEN_W//2 - 150, oy - 4, 300, 36), 1)
-            col = C_YELLOW if sel else (60, 100, 160)
-            ts = self.font_lg.render(opt, True, col)
+            label = opt + (" (sin partida)" if disabled else "")
+            ts = self.font_lg.render(label, True, col)
             s.blit(ts, (SCREEN_W//2 - ts.get_width()//2, oy + 2))
 
         # Footer
@@ -397,6 +454,11 @@ class VictoryScreen:
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN and event.key in (pygame.K_RETURN, pygame.K_ESCAPE):
+            try:
+                from controller.sound_manager import get_sound_manager
+                get_sound_manager().play_click()
+            except Exception:
+                pass
             return "menu"
         return None
 
