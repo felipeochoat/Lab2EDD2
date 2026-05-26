@@ -280,7 +280,7 @@ class MenuParticle:
 
 
 class MainMenu:
-    OPTIONS = ["NUEVA PARTIDA", "CONTINUAR", "CONFIGURACION", "SALIR"]
+    OPTIONS = ["NUEVA PARTIDA", "CONTINUAR", "MULTIJUGADOR", "CONFIGURACION", "SALIR"]
 
     def __init__(self, screen):
         self.screen   = screen

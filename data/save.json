@@ -1,5 +1,10 @@
 {
-  "score": 0,
-  "mission": 0,
-  "completed": []
+  "score": 1065,
+  "mission": 4,
+  "completed": [
+    0,
+    1,
+    2,
+    3
+  ]
 }

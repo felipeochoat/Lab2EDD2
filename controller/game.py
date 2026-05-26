@@ -37,6 +37,9 @@ from controller.dialogue_manager import DialogueManager
 from controller.save_manager     import SaveManager
 from controller.sound_manager    import get_sound_manager
 
+from network.server import GameServer
+from network.client import GameClient
+
 
 # ─── Instrucciones guiadas por misión ────────────────────────────────────────
 GUIDED_STEPS = {
@@ -135,7 +138,8 @@ class Game:
         self.origin_found = False
 
         # Input
-        self.keys_held = {}
+        self.keys_held    = {}   # teclas del J1 (WASD + acciones)
+        self.keys_held_p2 = {}   # teclas del J2 (flechas), dict separado
 
         # NPC anti-spam
         self.talked_set   = set()
@@ -157,12 +161,166 @@ class Game:
         self._minigame_npc   = None    # NPC que disparó el minijuego
         self._npc_talking    = False   # para los blips de diálogo
 
+        # ── Multijugador local (2 jugadores, misma pantalla) ───────────────
+        # El J1 usa WASD. El J2 usa flechas.
+        # La comunicación entre ellos pasa por un socket local + hilos.
+        #   - self._server: activo en el proceso del J1 (HOST)
+        #   - self._client: activo en el proceso del J2 (CLIENTE)
+        #   - self.player2: objeto Player del J2, siempre visible en pantalla
+        self._server  = None           # GameServer  (J1 activa)
+        self._client  = None           # GameClient  (J2 activa)
+        self.player2  = None           # Player del J2 (solo en modo multi)
+        self._near_npc_p1 = None       # NPC cercano al J1 (para prompt)
+        self._near_npc_p2 = None       # NPC cercano al J2 (para prompt)
+
         # Asignar NPCs de minijuego en misiones 0 y 1
         self._assign_minigame_npcs()
 
         self._show_step("start")
         # Start ambient & menu music
         self.snd.start_menu_music()
+
+    # ── MULTIJUGADOR ──────────────────────────────────────────────────────
+
+    def _start_as_host(self):
+        """Inicia una partida nueva y arranca el servidor en hilo de fondo."""
+        self._new_game()
+        self._server = GameServer()
+        self._server.start()
+        # Mostrar IP local para que el cliente sepa a dónde conectarse
+        import socket as _sock
+        try:
+            local_ip = _sock.gethostbyname(_sock.gethostname())
+        except Exception:
+            local_ip = "127.0.0.1"
+        print(f"[HOST] Tu IP local: {local_ip}  — Puerto: 54321")
+        # Mensaje en pantalla (aparece en el log/terminal)
+        self.dlg.show(
+            f"🌐 SERVIDOR INICIADO\n"
+            f"Dile al J2 que se conecte a: {local_ip}",
+            duration=300
+        )
+
+    def _start_as_client(self):
+        """Pide la IP del host por consola y se conecta como cliente."""
+        # En un juego con Pygame sin input de texto integrado,
+        # pedimos la IP por consola (sencillo y sin cambiar la UI).
+        print("[CLIENT] Ingresa la IP del host (o Enter para 127.0.0.1): ", end="", flush=True)
+        host = input().strip() or "127.0.0.1"
+
+        client = GameClient()
+        ok = client.connect(host)
+        if ok:
+            self._client = client
+            self._new_game()
+            self.dlg.show("🔗 CONECTADO al host. Verás al J1 como fantasma verde.", duration=240)
+        else:
+            self.dlg.show(f"❌ No se pudo conectar a {host}. ¿Está el host iniciado?", duration=240)
+            self.state_mgr.transition(GameState.PLAYING)
+
+    def _draw_ghost(self):
+        """Dibuja al jugador remoto como un rectángulo verde semitransparente."""
+        if self._client is None or not self._client.connected:
+            return
+        ghost = self._client.get_ghost()
+        if not ghost:
+            return
+
+        gx = ghost.get("x", 0)
+        gy = ghost.get("y", 0)
+        gf = ghost.get("facing", 1)
+        gs = ghost.get("score", 0)
+        gm = ghost.get("mission", 0)
+
+        # Rectángulo semitransparente verde
+        surf = pygame.Surface((20, 28), pygame.SRCALPHA)
+        surf.fill((0, 255, 100, 120))          # RGBA: verde con alpha
+        draw_x = int(gx - 10)
+        draw_y = int(gy - 14)
+        self.screen.blit(surf, (draw_x, draw_y))
+
+        # Etiqueta encima
+        label = self._ghost_font.render(f"J1 ★{gs}", True, (0, 255, 100))
+        self.screen.blit(label, (draw_x - 4, draw_y - 14))
+
+    # ── MULTIJUGADOR LOCAL ────────────────────────────────────────────────
+
+    def _start_multiplayer(self):
+        """
+        Arranca el modo 2 jugadores en la misma pantalla.
+        J1 = WASD  (este proceso es el HOST / servidor)
+        J2 = Flechas (el segundo jugador en el mismo teclado es el CLIENTE)
+
+        Ambos corren en el mismo proceso.  Los sockets conectan dos hilos:
+          - Hilo servidor: espera teclas del cliente
+          - Hilo cliente:  envía teclas al servidor (conecta a 127.0.0.1)
+        Así demostramos hilos + sockets aunque sea en la misma máquina.
+        """
+        import pygame
+
+        # 1. Iniciar partida normal (crea self.player = J1)
+        self._new_game()
+
+        # 2. Crear el Player del J2
+        self.player2 = Player(x=350, y=400)
+
+        # 3. Levantar servidor en hilo de fondo
+        self._server = GameServer()
+        self._server.start()
+
+        # 4. Conectar cliente (también en hilo de fondo) a ese servidor
+        #    Pequeña espera para que el servidor esté listo
+        import time; time.sleep(0.1)
+        self._client = GameClient()
+        ok = self._client.connect("127.0.0.1")
+        if not ok:
+            print("[MULTI] Advertencia: cliente no pudo conectar al servidor.")
+
+        self.ui.set_dialogue(
+            "🎮 MODO 2 JUGADORES",
+            "J1: WASD / Espacio para saltar  |  J2: Flechas / Flecha-Arriba para saltar"
+        )
+
+    def _update_player2(self):
+        """
+        Actualiza el J2 con las teclas de su dict separado (keys_held_p2).
+        Llamado cada frame desde _update() cuando player2 existe.
+        """
+        import pygame
+
+        if self.player2 is None:
+            return
+
+        # Siempre usa keys_held_p2 (poblado por eventos KEYDOWN/KEYUP de flechas).
+        # Si el servidor recibió teclas por socket, las mezcla también.
+        p2_keys = dict(self.keys_held_p2)
+        if self._server is not None and self._server.connected:
+            net_keys = self._server.get_p2_keys()
+            # Las teclas de red complementan las locales (OR)
+            if net_keys.get("left"):  p2_keys[pygame.K_LEFT]  = True
+            if net_keys.get("right"): p2_keys[pygame.K_RIGHT] = True
+            if net_keys.get("up"):    p2_keys[pygame.K_UP]    = True
+
+        self.player2.handle_input(
+            p2_keys,
+            left_key=pygame.K_LEFT,
+            right_key=pygame.K_RIGHT,
+        )
+        self.player2.update(self.world.width)
+
+    def _send_p2_keys(self):
+        """
+        Envía las teclas del J2 al servidor vía socket (hilo cliente).
+        Usa keys_held_p2 (event-based) en lugar de get_pressed().
+        """
+        if self._client is None or not self._client.connected:
+            return
+        import pygame
+        self._client.send_keys(
+            left  = bool(self.keys_held_p2.get(pygame.K_LEFT)),
+            right = bool(self.keys_held_p2.get(pygame.K_RIGHT)),
+            up    = bool(self.keys_held_p2.get(pygame.K_UP)),
+        )
 
     # ── MINIGAME NPC ASSIGNMENT ────────────────────────────────────────────
     def _assign_minigame_npcs(self):
@@ -217,6 +375,8 @@ class Game:
                     self._new_game()
                 elif r == "CONTINUAR":
                     self._load_game()
+                elif r == "MULTIJUGADOR":
+                    self._start_multiplayer()
                 elif r == "CONFIGURACION":
                     self.snd.play_click()
                     self.state_mgr.transition(GameState.SETTINGS)
@@ -249,28 +409,50 @@ class Game:
                     continue
 
                 if event.type == pygame.KEYDOWN:
-                    self.keys_held[event.key] = True
-                    self._handle_keydown(event.key)
+                    # Las flechas y Enter son del J2; el resto del J1
+                    if event.key in (pygame.K_LEFT, pygame.K_RIGHT,
+                                     pygame.K_UP, pygame.K_DOWN,
+                                     pygame.K_RETURN):
+                        self.keys_held_p2[event.key] = True
+                        self._handle_keydown_p2(event.key)
+                    else:
+                        self.keys_held[event.key] = True
+                        self._handle_keydown(event.key)
                 if event.type == pygame.KEYUP:
-                    self.keys_held[event.key] = False
+                    if event.key in (pygame.K_LEFT, pygame.K_RIGHT,
+                                     pygame.K_UP, pygame.K_DOWN,
+                                     pygame.K_RETURN):
+                        self.keys_held_p2[event.key] = False
+                    else:
+                        self.keys_held[event.key] = False
                 if event.type == pygame.MOUSEBUTTONDOWN:
                     self._handle_click(event.pos)
 
     def _handle_keydown(self, key):
+        """Teclas del J1: WASD, E, Espacio, números."""
         if key == pygame.K_ESCAPE:
             self.snd.play_back()
             self.state_mgr.transition(GameState.MENU)
             self.snd.start_menu_music()
-        if key in (pygame.K_SPACE, pygame.K_UP, pygame.K_w):
+        if key in (pygame.K_SPACE, pygame.K_w):
             self.player.jump()
         if key == pygame.K_e:
-            self._interact_with_npc()
+            self._interact_with_npc(self.player)
         if key == pygame.K_1: self._start_algo("bfs")
         if key == pygame.K_2: self._start_algo("dfs")
         if key == pygame.K_3: self._start_algo("dijkstra")
         if key == pygame.K_4: self._start_algo("kruskal")
         if key == pygame.K_5: self._start_algo("ff")
         if key == pygame.K_m: self._advance_mission()  # debug skip
+
+    def _handle_keydown_p2(self, key):
+        """Teclas del J2: flechas. ↑ salta, Enter interactúa con NPC."""
+        if self.player2 is None:
+            return
+        if key == pygame.K_UP:
+            self.player2.jump()
+        if key == pygame.K_RETURN:
+            self._interact_with_npc(self.player2)
 
     def _handle_click(self, pos):
         btn = self.ui.get_button_at(pos)
@@ -324,12 +506,25 @@ class Game:
         self.player.handle_input(self.keys_held)
         self.player.update(self.world.width)
 
+        # Multijugador: J2 mueve con flechas; el cliente envía teclas al servidor
+        self._send_p2_keys()
+        self._update_player2()
+
         # World
         self.world.update(self.player)
 
-        # Near NPC
+        # Near NPC — J1
         near = self.world.npc_near_player(self.player.x, threshold=70)
         self.player.near_npc = near.node_id if near else None
+        self._near_npc_p1 = near
+
+        # Near NPC — J2
+        if self.player2 is not None:
+            near2 = self.world.npc_near_player(self.player2.x, threshold=70)
+            self.player2.near_npc = near2.node_id if near2 else None
+            self._near_npc_p2 = near2
+        else:
+            self._near_npc_p2 = None
 
         # NPC blips (Undertale style) — sólo si el jugador está junto a un NPC
         self.snd.tick_npc_talking(self._npc_talking)
@@ -581,8 +776,9 @@ class Game:
         self.algo_timer = 0.0
 
     # ── NPC INTERACTION ───────────────────────────────────────────────────
-    def _interact_with_npc(self):
-        near = self.world.npc_near_player(self.player.x, threshold=70)
+    def _interact_with_npc(self, player):
+        """Interacción de cualquier jugador con un NPC cercano."""
+        near = self.world.npc_near_player(player.x, threshold=70)
         if not near:
             return
         nid = near.node_id
@@ -604,7 +800,7 @@ class Game:
         # Activar blips NPC
         self._npc_talking = True
 
-        # XP primera vez
+        # XP primera vez — progreso compartido, siempre suma al J1
         if nid not in self.talked_set:
             self.talked_set.add(nid)
             self.talked_count += 1
@@ -757,7 +953,8 @@ class Game:
         pygame.draw.line(self.screen, (20, 40, 80), (0, 220), (SCREEN_W, 220), 2)
 
         near = self.world.npc_near_player(self.player.x, threshold=70)
-        self.world_rend.draw(self.world, self.player, near_npc=near)
+        self.world_rend.draw(self.world, self.player, near_npc=near,
+                             player2=self.player2, near_npc_p2=self._near_npc_p2)
 
         # ── Indicador de minijuego disponible ──────────────────────────────
         self._draw_minigame_indicators()

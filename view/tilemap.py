@@ -176,7 +176,7 @@ class WorldRenderer:
         for y in range(0, GAME_PANEL_H, 3):
             pygame.draw.line(self.scanline_surf, (0, 0, 0, 20), (0, y), (SCREEN_W, y))
 
-    def draw(self, world, player, near_npc=None):
+    def draw(self, world, player, near_npc=None, player2=None, near_npc_p2=None):
         self.t += 1
         cam_x = world.cam_x
         clip  = pygame.Rect(0, GAME_PANEL_Y, SCREEN_W, GAME_PANEL_H)
@@ -270,10 +270,15 @@ class WorldRenderer:
             _pill_label(surf, self.font_md, npc.name, nx, foot_y - 52 + bob,
                         name_col, bg_alpha=180, pad=4)
 
-            # [E] HABLAR prompt
+            # [E] HABLAR prompt — J1
             if near_npc and near_npc.node_id == npc.node_id:
-                _pill_label(surf, self.font_md, "[E] HABLAR", nx, foot_y - 68 + bob,
+                _pill_label(surf, self.font_md, "[E] HABLAR J1", nx, foot_y - 68 + bob,
                             C_YELLOW, bg_alpha=200, pad=4)
+
+            # [ENTER] HABLAR prompt — J2
+            if near_npc_p2 and near_npc_p2.node_id == npc.node_id:
+                _pill_label(surf, self.font_md, "[↵] HABLAR J2", nx, foot_y - 82 + bob,
+                            (255, 190, 80), bg_alpha=200, pad=4)
 
             # ✓ revealed badge
             if npc.revealed:
@@ -298,6 +303,20 @@ class WorldRenderer:
         # GUARDIAN label
         _pill_label(surf, self.font_md, "GUARDIAN", px, foot_y + jump_off - 58,
                     (140, 215, 255), bg_alpha=170, pad=4)
+
+        # ── JUGADOR 2 (naranja) ───────────────────────────────────────────────
+        if player2 is not None:
+            px2       = int(player2.x - world.cam_x)
+            jump_off2 = min(0, int(player2.vy * 1.2)) if not player2.on_ground else 0
+            walk2     = int(player2.anim_frame)
+            p2_col    = (255, 140, 0)    # naranja
+            p2_skin   = (255, 220, 180)
+            _draw_person(surf, px2, foot_y + jump_off2, p2_col, p2_skin,
+                         facing=player2.facing, anim=walk2, scale=1.3,
+                         hat=False, hood=False, antenna=False, cape=False,
+                         revealed=True)
+            _pill_label(surf, self.font_md, "GUARDIAN 2", px2, foot_y + jump_off2 - 58,
+                        (255, 190, 80), bg_alpha=170, pad=4)
 
         # ── Particles ─────────────────────────────────────────────────────────
         for p in world.particles:

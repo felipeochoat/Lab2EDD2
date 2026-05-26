@@ -33,18 +33,32 @@ class Player:
     def ground(self):
         return GROUND_Y
 
-    def handle_input(self, keys_held):
+    def handle_input(self, keys_held, left_key=None, right_key=None):
+        """
+        Procesa el input del jugador.
+        - J1: llama sin left_key/right_key → usa solo A y D de keys_held
+        - J2: llama con left_key=K_LEFT, right_key=K_RIGHT y su propio keys_held
+        """
         import pygame
         speed = PLAYER_SPEED * (PLAYER_RUN_MULT if self.running else 1)
 
         self.running = keys_held.get(pygame.K_LSHIFT, False) or keys_held.get(pygame.K_RSHIFT, False)
 
+        if left_key is not None:
+            # J2: usa solo las teclas explícitas pasadas
+            go_left  = bool(keys_held.get(left_key))
+            go_right = bool(keys_held.get(right_key))
+        else:
+            # J1: solo A y D (las flechas son exclusivas del J2)
+            go_left  = bool(keys_held.get(pygame.K_a))
+            go_right = bool(keys_held.get(pygame.K_d))
+
         moving = False
-        if keys_held.get(pygame.K_LEFT) or keys_held.get(pygame.K_a):
+        if go_left:
             self.vx = -speed
             self.facing = -1
             moving = True
-        elif keys_held.get(pygame.K_RIGHT) or keys_held.get(pygame.K_d):
+        elif go_right:
             self.vx = speed
             self.facing = 1
             moving = True
