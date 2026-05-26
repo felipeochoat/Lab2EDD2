@@ -19,6 +19,7 @@ class Player:
         self.facing    = 1       # 1 = right, -1 = left
         self.running   = False
         self.score     = 0
+        self.mission_xp = 0   # XP acumulada en la misión actual (se resetea al avanzar)
         self.missions_done = set()
 
         # Animation
@@ -100,3 +101,8 @@ class Player:
 
     def add_score(self, pts):
         self.score += pts
+        self.mission_xp += pts
+
+    def reset_mission_xp(self):
+        """Llamar al avanzar de misión."""
+        self.mission_xp = 0

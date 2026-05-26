@@ -153,7 +153,7 @@ def _gen_xp_gain(vol=0.45):
     arr[mid:] += _sine(784, t[mid:]) * 0.3
     return _make_sound(arr * _envelope(frames, 0.01, 0.08, 0.3, 0.06), vol)
 
-def _gen_ambient_loop(vol=0.18):
+def _gen_ambient_loop(vol=1.0):
     dur = 4.0; frames = int(SAMPLE_RATE * dur)
     t = np.linspace(0, dur, frames, False)
     drone  = _sine(55, t) * 0.35 + _sine(82.5, t) * 0.20 + _sine(110, t) * 0.12
@@ -259,6 +259,11 @@ class SoundManager:
             snd.set_volume(v)
         for b in self._npc_blips:
             b.set_volume(v * 0.8)
+        try:
+            pygame.mixer.Channel(self.CH_AMBIENT).set_volume(v * 0.9)
+            pygame.mixer.Channel(self.CH_MUSIC).set_volume(v)
+        except Exception:
+            pass
 
     # ── Reproducción general ────────────────────────────
     def play(self, name: str, channel=None):
@@ -309,10 +314,13 @@ class SoundManager:
         self._music_playing = True
         self._ambient_playing = False
 
-    def start_ambient(self):
-        if not self._ok or self._ambient_playing: return
+    def start_ambient(self, force=False):
+        if not self._ok: return
+        if self._ambient_playing and not force: return
         pygame.mixer.Channel(self.CH_MUSIC).stop()
-        pygame.mixer.Channel(self.CH_AMBIENT).play(self._sounds["ambient"], loops=-1)
+        ch = pygame.mixer.Channel(self.CH_AMBIENT)
+        ch.play(self._sounds["ambient"], loops=-1)
+        ch.set_volume(self._volume * 0.9)
         self._ambient_playing = True
         self._music_playing = False
 

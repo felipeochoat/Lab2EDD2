@@ -324,18 +324,17 @@ class Game:
 
     # ── MINIGAME NPC ASSIGNMENT ────────────────────────────────────────────
     def _assign_minigame_npcs(self):
-        """Marca 1 NPC de cada misión activa como NPC de minijuego.
-        Misiones 0,1 → 2 NPCs c/u. Misiones 2,3 → 1 NPC c/u."""
+        """Selecciona NPCs de minijuego aleatoriamente de todos los NPCs del mundo.
+        Resetea flags primero para distribución fresca cada misión."""
         mid = self.mission_mgr.current
-        per_mission = {0: 2, 1: 2, 2: 1, 3: 1}
+        per_mission = {0: 3, 1: 3, 2: 2, 3: 2, 4: 0}
         count = per_mission.get(mid, 0)
-        if count == 0:
-            return
-        eligible = [npc for npc in self.world.npcs
-                    if not npc.is_minigame_npc]
-        chosen_count = min(count, len(eligible))
-        if chosen_count > 0:
-            chosen = random.sample(eligible, chosen_count)
+        for npc in self.world.npcs:
+            npc.is_minigame_npc  = False
+            npc.minigame_done    = False
+            npc.minigame_pending = False
+        if count > 0 and len(self.world.npcs) >= count:
+            chosen = random.sample(self.world.npcs, count)
             for npc in chosen:
                 npc.is_minigame_npc = True
 
@@ -541,7 +540,8 @@ class Game:
         self.graph_view.update(dt)
 
         # UI
-        self.ui.update(self.graph, self.player, self.mission_mgr.current)
+        xp_req = self.mission_mgr.xp_required(self.mission_mgr.current)
+        self.ui.update(self.graph, self.player, self.mission_mgr.current, xp_required=xp_req)
         self.ui.tick_popups()
 
         # Algorithm step
@@ -691,12 +691,10 @@ class Game:
             self.talked_count  = 0
             self.npc_cooldown  = {}
             self.origin_found  = False
-            # Assign minigame NPCs for new mission
+            self.player.reset_mission_xp()
             self._assign_minigame_npcs()
-            # Guardar progreso al avanzar de misión
             self.save_mgr.save(self.player, self.mission_mgr)
             self._show_step("start")
-            # Mostrar intro cinemática de la nueva misión
             self._show_mission_intro()
         else:
             self._trigger_victory()
@@ -710,9 +708,10 @@ class Game:
 
     # ── ALGO STARTERS ─────────────────────────────────────────────────────
     def _start_algo(self, algo_id):
+        mid = self.mission_mgr.current
         # Bloquear algoritmos no permitidos en esta misión
         from view.ui import MISSION_RECOMMENDED
-        allowed = MISSION_RECOMMENDED.get(self.mission_mgr.current, [algo_id])
+        allowed = MISSION_RECOMMENDED.get(mid, [algo_id])
         if algo_id not in allowed:
             algo_names = {"bfs": "BFS", "dfs": "DFS", "dijkstra": "Dijkstra",
                           "kruskal": "Kruskal", "ff": "Ford-Fulkerson"}
@@ -720,6 +719,15 @@ class Game:
             self.ui.set_dialogue("⚠ ALGORITMO BLOQUEADO",
                 f"{algo_names.get(algo_id, algo_id.upper())} no es el método requerido "
                 f"en esta misión. Usa: {needed}.")
+            self.snd.play_back()
+            return
+        # Bloquear si no se alcanzó el umbral de XP de misión
+        if not self.mission_mgr.algo_unlocked(mid, self.player.mission_xp):
+            req   = self.mission_mgr.xp_required(mid)
+            falta = req - self.player.mission_xp
+            self.ui.set_dialogue("🔒 PROCEDIMIENTO BLOQUEADO",
+                f"Necesitas {req} XP de investigación para activar este procedimiento. "
+                f"Te faltan {falta} XP. Habla con más NPCs o completa minijuegos.")
             self.snd.play_back()
             return
         if self.algo_running:
@@ -804,9 +812,11 @@ class Game:
         if nid not in self.talked_set:
             self.talked_set.add(nid)
             self.talked_count += 1
+            prev_xp = self.player.mission_xp
             self.player.add_score(5)
             self.snd.play_xp()
             self.ui.show_xp_popup("+5 XP", near.x - self.world.cam_x, 355)
+            self._check_xp_unlock(prev_xp)
 
         # ¿El NPC pide ayuda para el minijuego?
         if near.minigame_pending and not near.minigame_done:
@@ -830,17 +840,34 @@ class Game:
         won = self._minigame_ctrl.won
         xp  = self._minigame_ctrl.xp_reward
         if won:
+            prev_xp = self.player.mission_xp
             self.player.add_score(xp)
             self.snd.play_minigame_win()
             self.ui.show_xp_popup(f"+{xp} XP  MINIJUEGO", SCREEN_W // 2, SCREEN_H // 2 + 60)
+            self._check_xp_unlock(prev_xp)
         else:
             self.snd.play_minigame_lose()
 
         self._minigame_ctrl = None
         self._minigame_npc  = None
         self.state_mgr.transition(GameState.PLAYING)
-        # Restaurar ambiente
-        self.snd.start_ambient()
+        self.snd.start_ambient(force=True)
+
+    def _check_xp_unlock(self, prev_xp):
+        """Anuncia con fanfare si el algoritmo acaba de desbloquearse."""
+        mid = self.mission_mgr.current
+        req = self.mission_mgr.xp_required(mid)
+        if req > 0 and prev_xp < req <= self.player.mission_xp:
+            from view.ui import MISSION_RECOMMENDED
+            algo_names = {"bfs": "BFS", "dfs": "DFS", "dijkstra": "Dijkstra",
+                          "kruskal": "Kruskal", "ff": "Ford-Fulkerson"}
+            allowed = MISSION_RECOMMENDED.get(mid, [])
+            names = " / ".join(algo_names.get(a, a.upper()) for a in allowed)
+            self.ui.set_dialogue("🔓 PROCEDIMIENTO DESBLOQUEADO",
+                f"¡Investigación suficiente! El procedimiento {names} ya está disponible. "
+                f"Actívalo desde el panel lateral o con su tecla.")
+            self.snd.play_mission_complete()
+            self.glitch.trigger(30, 0.5)
 
     # ── GUIDED STEP ───────────────────────────────────────────────────────
     def _show_step(self, condition_key):
@@ -869,7 +896,7 @@ class Game:
         self.mission_intro = None
         self._show_step("start")
         self.snd.stop_all_music()
-        self.snd.start_ambient()
+        self.snd.start_ambient(force=True)
 
     def _new_game(self):
         self.graph   = SocialGraph(n=12, seed=42)
@@ -885,15 +912,14 @@ class Game:
         self._advance_timer= 0
         self._minigame_ctrl = None
         self._minigame_npc  = None
+        self.player.reset_mission_xp()
         self._assign_minigame_npcs()
         self._show_step("start")
-        # Guardar estado inicial para que CONTINUAR funcione de inmediato
         self.save_mgr.save(self.player, self.mission_mgr)
         self.main_menu.refresh_save_state()
         self.state_mgr.transition(GameState.PLAYING)
         self.snd.stop_all_music()
-        self.snd.start_ambient()
-        # Mostrar intro cinemática de misión 0
+        self.snd.start_ambient(force=True)
         self._show_mission_intro()
 
     def _load_game(self):
@@ -916,11 +942,11 @@ class Game:
         self._advance_timer = 0
         self._minigame_ctrl = None
         self._minigame_npc  = None
+        self.player.reset_mission_xp()
         self._show_step("start")
         self.state_mgr.transition(GameState.PLAYING)
         self.snd.stop_all_music()
-        self.snd.start_ambient()
-        # Mostrar intro cinemática de la misión cargada
+        self.snd.start_ambient(force=True)
         self._show_mission_intro()
 
     # ── DRAW ──────────────────────────────────────────────────────────────

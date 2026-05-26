@@ -51,3 +51,12 @@ class MissionManager:
 
     def reward(self, mission_id):
         return MISSIONS[mission_id].get('reward', 30)
+
+    def xp_required(self, mission_id):
+        """XP de misión necesarios para desbloquear el algoritmo. 0 = sin requisito."""
+        return MISSIONS[mission_id].get('xp_required', 0)
+
+    def algo_unlocked(self, mission_id, mission_xp):
+        """True si el jugador tiene suficiente XP de misión para usar el algoritmo."""
+        req = self.xp_required(mission_id)
+        return req == 0 or mission_xp >= req

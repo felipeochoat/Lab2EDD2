@@ -31,6 +31,7 @@ MISSIONS = [
         "goal": "Encontrar el nodo origen.",
         "hint": "Habla con NPCs y activa BFS o DFS desde el panel inferior.",
         "reward": 50,
+        "xp_required": 30,
     },
     {
         "id": 1,
@@ -44,6 +45,7 @@ MISSIONS = [
         "goal": "Encontrar el camino más seguro hasta la víctima.",
         "hint": "Activa DIJKSTRA desde el panel. La ruta verde es la más segura.",
         "reward": 60,
+        "xp_required": 40,
     },
     {
         "id": 2,
@@ -57,6 +59,7 @@ MISSIONS = [
         "goal": "Crear el árbol de expansión mínima de la red.",
         "hint": "Activa KRUSKAL. Las aristas verdes son las seleccionadas.",
         "reward": 60,
+        "xp_required": 40,
     },
     {
         "id": 3,
@@ -70,6 +73,7 @@ MISSIONS = [
         "goal": "Calcular el flujo máximo y controlar la propagación.",
         "hint": "Activa FORD-FULKERSON. Las aristas rojas muestran el flujo tóxico.",
         "reward": 70,
+        "xp_required": 50,
     },
     {
         "id": 4,
@@ -83,5 +87,6 @@ MISSIONS = [
         "goal": "Completar los 4 algoritmos y restaurar la red.",
         "hint": "Ejecuta los 4 algoritmos en orden. ¡Cada uno desbloquea el siguiente!",
         "reward": 150,
+        "xp_required": 0,
     },
 ]

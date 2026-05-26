@@ -64,6 +64,8 @@ class UIPanel:
         self.trust       = 0.3
         self.score       = 0
         self.mission     = 0
+        self.mission_xp      = 0
+        self.mission_xp_req  = 0
 
         # Algo button states: btn_id -> 'normal' | 'active' | 'done'
         self.btn_states = {}
@@ -113,14 +115,16 @@ class UIPanel:
             surf.set_alpha(p.alpha)
             surface.blit(surf, (int(p.x) - surf.get_width() // 2, int(p.y)))
 
-    def update(self, graph, player, mission):
+    def update(self, graph, player, mission, xp_required=0):
         self.t += 1
         total = len(graph.nodes)
-        self.visited_pct = graph.visited_count() / total
-        self.toxicity    = graph.toxicity_level()
-        self.trust       = 1 - self.toxicity
-        self.score       = player.score
-        self.mission     = mission
+        self.visited_pct     = graph.visited_count() / total if total else 0
+        self.toxicity        = graph.toxicity_level()
+        self.trust           = 1 - self.toxicity
+        self.score           = player.score
+        self.mission         = mission
+        self.mission_xp      = player.mission_xp
+        self.mission_xp_req  = xp_required
 
     # ── Main draw ──────────────────────────────────────────────────────────────
     def draw(self, algo_label="", algo_callbacks=None):
@@ -185,7 +189,14 @@ class UIPanel:
         s.blit(self.font_md.render("ESTADO RED", True, (28, 52, 96)), (x, y + 6))
         bw = w - 52
         self._draw_bar(s, x, y + 24, bw, 7, self.toxicity,    C_RED,   "TOXICIDAD")
-        self._draw_bar(s, x, y + 46, bw, 7, self.visited_pct, C_BLUE,  "INVESTIGADO")
+        # Barra de XP de misión (reemplaza INVESTIGADO)
+        req = self.mission_xp_req
+        if req == 0:
+            self._draw_xp_bar(s, x, y + 46, bw, 7, 1.0, unlocked=True)
+        else:
+            ratio = min(1.0, self.mission_xp / req)
+            self._draw_xp_bar(s, x, y + 46, bw, 7, ratio,
+                              unlocked=(ratio >= 1.0), cur=self.mission_xp, req=req)
         self._draw_bar(s, x, y + 68, bw, 7, self.trust,       C_GREEN, "CONFIANZA")
 
         # Algo label
@@ -197,6 +208,29 @@ class UIPanel:
         # Score
         s.blit(self.font_md.render(f"SCORE: {self.score} XP", True, C_GREEN), (x, y + h - 22))
 
+    def _draw_xp_bar(self, s, x, y, w, h_bar, ratio, unlocked=False, cur=0, req=0):
+        """Barra de XP de misión con estado bloqueado/desbloqueado."""
+        import math as _math
+        pygame.draw.rect(s, (10, 18, 36), (x, y + 11, w, h_bar))
+        fw = max(0, int(w * ratio))
+        if unlocked:
+            pulse = 0.7 + 0.3 * _math.sin(self.t * 0.12)
+            col = (int(255 * pulse), int(200 * pulse), 0)
+        else:
+            col = (0, 160, 220)
+        if fw > 0:
+            pygame.draw.rect(s, col, (x, y + 11, fw, h_bar))
+        pygame.draw.rect(s, (18, 36, 68), (x, y + 11, w, h_bar), 1)
+        lf = self.font_xs
+        if unlocked:
+            label, lc = "✔ PROCEDIMIENTO DESBLOQUEADO", (255, 220, 0)
+        else:
+            label, lc = f"EXP MISIÓN  {cur}/{req}", (0, 160, 220)
+        s.blit(lf.render(label, True, lc), (x, y))
+        s.blit(lf.render(f"{int(ratio*100)}%", True, (45, 75, 115)), (x + w + 4, y + 10))
+        if not unlocked:
+            s.blit(lf.render("🔒", True, (80, 100, 140)), (x + w - 14, y + 8))
+
     def _draw_algo_btns(self, s, x, y, w, h):
         BTNS = [
             ("bfs",      "⚡ BFS",          C_BLUE,               "[1]"),
@@ -206,6 +240,7 @@ class UIPanel:
             ("ff",       "🚫 FORD-FULKERSON",C_RED,                "[5]"),
         ]
         recommended = MISSION_RECOMMENDED.get(self.mission, [])
+        xp_locked = (self.mission_xp_req > 0 and self.mission_xp < self.mission_xp_req)
 
         s.blit(self.font_xs.render("ACTIVAR ALGORITMO:", True, (28, 52, 96)), (x, y + 4))
 
@@ -213,7 +248,8 @@ class UIPanel:
             by    = y + 18 + i * 27
             state = self.btn_states.get(bid, 'normal')
             is_rec   = bid in recommended
-            is_locked = not is_rec and state not in ('done', 'active')
+            is_locked = (not is_rec and state not in ('done', 'active')) or \
+                        (xp_locked and state not in ('done', 'active'))
 
             if is_locked:
                 # Grisado / bloqueado
@@ -241,7 +277,8 @@ class UIPanel:
             s.blit(ls, (x + 6, by + 5))
 
             if is_locked:
-                ds = self.font_xs.render("🔒 BLOQ", True, (30, 40, 65))
+                badge_txt = "🔒 XP" if (xp_locked and is_rec) else "🔒 BLOQ"
+                ds = self.font_xs.render(badge_txt, True, (30, 40, 65))
                 s.blit(ds, (x + w - ds.get_width() - 6, by + 7))
             elif state == 'done':
                 ds = self.font_xs.render("✓ LISTO", True, C_GREEN)
@@ -301,10 +338,13 @@ class UIPanel:
         y0 = UI_PANEL_Y + 18
         bids = ["bfs", "dfs", "dijkstra", "kruskal", "ff"]
         recommended = MISSION_RECOMMENDED.get(self.mission, bids)
+        xp_locked = (self.mission_xp_req > 0 and self.mission_xp < self.mission_xp_req)
         for i, bid in enumerate(bids):
             by = y0 + i * 27
             if pygame.Rect(x0, by, 178, 24).collidepoint(mouse_pos):
-                if bid in recommended:
-                    return bid
-                return None   # bloqueado visualmente
+                if bid not in recommended:
+                    return None
+                if xp_locked:
+                    return None
+                return bid
         return None
