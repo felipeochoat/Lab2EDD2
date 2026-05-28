@@ -258,7 +258,6 @@ class MissionIntroScreen:
         intro.draw()
     """
 
-    DURATION = 600       # ~10 segundos a 60fps (auto-skip)
     FADE_IN  = 40        # frames de fade-in
     SKIP_AFTER = 120     # el jugador puede saltar después de 2 segundos
 
@@ -302,16 +301,8 @@ class MissionIntroScreen:
         """Returns 'continue' when the player wants to proceed."""
         if event.type == pygame.KEYDOWN:
             if event.key in (pygame.K_RETURN, pygame.K_SPACE, pygame.K_e):
-                if self.t >= self.SKIP_AFTER:
-                    self.done = True
-                    return "continue"
-        if event.type == pygame.MOUSEBUTTONDOWN and event.button == 1:
-            if self.t >= self.SKIP_AFTER:
-                # Check button rect
-                btn_rect = self._get_btn_rect()
-                if btn_rect.collidepoint(event.pos):
-                    self.done = True
-                    return "continue"
+                self.done = True
+                return "continue"
         return None
 
     def update(self):
@@ -320,8 +311,6 @@ class MissionIntroScreen:
             p.update()
         for n in self.bg_nodes:
             n.update()
-        if self.t >= self.DURATION:
-            self.done = True
 
     def draw(self):
         s = self.screen
@@ -403,16 +392,13 @@ class MissionIntroScreen:
         self._draw_objective(s, d, t, obj_y)
 
         # ── 14. CTA BUTTON ───────────────────────────────────────────────
-        btn_y = obj_y + 54
-        self._draw_button(s, d, t, btn_y)
+        # (removed)
 
         # ── 15. FINAL LINE ────────────────────────────────────────────────
-        self._draw_final_line(s, d, t, btn_y + 60)
+        self._draw_final_line(s, d, t, obj_y + 54)
 
         # ── 16. PROGRESS BAR ─────────────────────────────────────────────
-        bar_w = int(SCREEN_W * min(1.0, t / self.DURATION))
-        pygame.draw.rect(s, (20, 30, 50), (0, SCREEN_H - 4, SCREEN_W, 4))
-        pygame.draw.rect(s, d["accent"], (0, SCREEN_H - 4, bar_w, 4))
+        # (timer removed — slide advances with SPACE / ENTER)
 
         # Skip hint
         if t >= self.SKIP_AFTER:

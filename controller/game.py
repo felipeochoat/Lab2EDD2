@@ -490,8 +490,6 @@ class Game:
         # Cinematic freeze
         if self.cinematic_active:
             self.cinematic_timer += 1
-            if self.cinematic_timer >= self.CINEMATIC_DURATION:
-                self._end_cinematic()
             return
 
         # Mission advance timer
@@ -1078,13 +1076,6 @@ class Game:
             for i, (ln, col) in enumerate(lines):
                 ls = font_md.render(ln, True, col)
                 s.blit(ls, (SCREEN_W // 2 - ls.get_width() // 2, SCREEN_H // 2 + 16 + i * 17))
-
-        bar_w = int(SCREEN_W * min(1.0, t / self.CINEMATIC_DURATION))
-        pygame.draw.rect(s, (35, 0, 0),  (0, SCREEN_H - 5, SCREEN_W, 5))
-        pygame.draw.rect(s, C_RED,       (0, SCREEN_H - 5, bar_w, 5))
-        hint_s = pygame.font.SysFont("consolas", 9).render(
-            "Espera o presiona SPACE/ENTER", True, (40, 20, 20))
-        s.blit(hint_s, (SCREEN_W - hint_s.get_width() - 8, SCREEN_H - 16))
 
     # ── TOP HUD ───────────────────────────────────────────────────────────
     def _draw_top_hud(self):
