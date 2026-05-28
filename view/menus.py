@@ -280,7 +280,7 @@ class MenuParticle:
 
 
 class MainMenu:
-    OPTIONS = ["NUEVA PARTIDA", "CONTINUAR", "MULTIJUGADOR", "CONFIGURACION", "SALIR"]
+    OPTIONS = ["SOLITARIO", "CONTINUAR SOLI", "MULTIJUGADOR", "CONTINUAR MULTI", "CONFIGURACION", "SALIR"]
 
     def __init__(self, screen):
         self.screen   = screen
@@ -291,7 +291,8 @@ class MainMenu:
         self.font_lg  = pygame.font.SysFont("consolas", 22, bold=True)
         self.font_md  = pygame.font.SysFont("consolas", 14)
         self.font_sm  = pygame.font.SysFont("consolas", 11)
-        self._has_save = False
+        self._has_save       = False
+        self._has_save_multi = False
         self.refresh_save_state()
         # Floating nodes for bg
         self.bg_nodes = [
@@ -307,9 +308,11 @@ class MainMenu:
         try:
             import os
             from model.constants import DATA_DIR
-            self._has_save = os.path.exists(os.path.join(DATA_DIR, "save.json"))
+            self._has_save       = os.path.exists(os.path.join(DATA_DIR, "save.json"))
+            self._has_save_multi = os.path.exists(os.path.join(DATA_DIR, "save_multi.json"))
         except Exception:
-            self._has_save = False
+            self._has_save       = False
+            self._has_save_multi = False
 
     def handle_event(self, event):
         if event.type == pygame.KEYDOWN:
@@ -319,8 +322,8 @@ class MainMenu:
                 self.selected = (self.selected + 1) % len(self.OPTIONS)
             elif event.key in (pygame.K_RETURN, pygame.K_SPACE):
                 opt = self.OPTIONS[self.selected]
-                # Bloquear CONTINUAR sin save
-                if opt == "CONTINUAR" and not self._has_save:
+                # Bloquear CONTINUAR / CONTINUAR MULTI sin save
+                if (opt == "CONTINUAR SOLI"  and not self._has_save) or (opt == "CONTINUAR MULTI" and not self._has_save_multi):
                     return None
                 try:
                     from controller.sound_manager import get_sound_manager
@@ -334,7 +337,7 @@ class MainMenu:
                 rect = pygame.Rect(SCREEN_W//2 - 150, oy - 4, 300, 36)
                 if rect.collidepoint(event.pos):
                     opt = self.OPTIONS[i]
-                    if opt == "CONTINUAR" and not self._has_save:
+                    if opt in ("CONTINUAR SOLI", "CONTINUAR MULTI") and not self._has_save:
                         return None
                     try:
                         from controller.sound_manager import get_sound_manager
@@ -424,7 +427,7 @@ class MainMenu:
         for i, opt in enumerate(self.OPTIONS):
             oy  = SCREEN_H // 2 + i * 48 - 40
             sel = (i == self.selected)
-            disabled = (opt == "CONTINUAR" and not self._has_save)
+            disabled = (opt == "CONTINUAR SOLI"  and not self._has_save) or (opt == "CONTINUAR MULTI" and not self._has_save_multi)
             if disabled:
                 bg = (4, 8, 16); bc = (18, 28, 46)
                 col = (35, 50, 70)
